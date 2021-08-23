@@ -5,7 +5,7 @@
 * Based on Metal3 which builds on OpenStack Ironic
 * Bootstrap node runs as a libvirt VM on a provisioner host. This example uses the provisioner host for both the bootstrap node and the virtualized cluster nodes.
 * RHCOS content is downloaded during installation but [can be cached](https://docs.openshift.com/container-platform/4.8/installing/installing_bare_metal_ipi/ipi-install-installation-workflow.html#ipi-install-creating-an-rhcos-images-cache_ipi-install-installation-workflow).
-* If the DHCP server specifies an infinite lease RHCOS will be configured with a [static ip](https://docs.openshift.com/container-platform/4.8/installing/installing_bare_metal_ipi/ipi-install-installation-workflow.html#verifying-static-ip-address-configuration_ipi-install-configuration-files).
+* If the DHCP server specifies an infinite lease RHCOS will be configured with a [static ip](https://docs.openshift.com/container-platform/4.8/installing/installing_bare_metal_ipi/ipi-install-installation-workflow.html#verifying-static-ip-address-configuration_ipi-install-configuration-files). See bz [1970013](https://bugzilla.redhat.com/show_bug.cgi?id=1970013).
 
 ## Initial Configuration
 
