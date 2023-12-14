@@ -1,0 +1,10 @@
+---
+# vars file for libvirt
+libvirt_pool_path: /var/lib/libvirt/images
+cluster_name: cluster_name
+base_domain: example.com
+machine_ip: 192.0.2.10
+vm_memory_mib: 16000
+vm_cpus: 8
+vm_disk_gb: 120
+agent_image_dest: "{{ libvirt_pool_path }}/agent-{{ cluster_name }}.x86_64.iso"

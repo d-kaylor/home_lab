@@ -1,0 +1,55 @@
+---
+# tasks file for sno
+
+- name: Create install directory
+  ansible.builtin.file:
+    path: "{{ install_dir }}"
+    state: directory
+
+- name: Download installer
+  ansible.builtin.unarchive:
+    src: "{{ ocp_installer_url }}/{{ ocp_version }}/openshift-install-linux.tar.gz"
+    dest: "{{ install_dir }}"
+    remote_src: yes
+
+- name: Create subdirectory for cluster
+  ansible.builtin.file:
+    path: "{{ install_dir }}/{{ cluster_name }}.{{ base_domain }}"
+    state: directory
+
+- name: Creat agent-config
+  ansible.builtin.template:
+    src: agent-config.yaml.j2
+    dest: "{{ install_dir }}/{{ cluster_name }}.{{ base_domain }}/agent-config.yaml"
+
+- name: Create install-config
+  ansible.builtin.template:
+    src: install-config.yaml.j2
+    dest: "{{ install_dir }}/{{ cluster_name }}.{{ base_domain }}/install-config.yaml"
+
+- name: Create agent image
+  ansible.builtin.command: "{{ install_dir }}/openshift-install agent create image --dir {{ install_dir }}/{{ cluster_name }}.{{ base_domain }}"
+  args:
+    creates: "{{ install_dir }}/{{ cluster_name }}.{{ base_domain }}/agent.x86_64.iso"
+
+- name: Copy image to destination
+  ansible.builtin.copy:
+    src: "{{ install_dir }}/{{ cluster_name }}.{{ base_domain }}/agent.x86_64.iso"
+    dest: "{{ agent_image_dest }}"
+  become: true
+
+- name: Start host
+  ansible.builtin.command: "{{ host_start_command }}"
+  when: host_start_command is defined
+  become: true
+
+- name: Wait for bootstrap - tail {{ install_dir }}/{{ cluster_name }}.{{ base_domain }}/.openshift_install.log to monitor progress
+  ansible.builtin.command: "{{ install_dir }}/openshift-install --dir {{ install_dir }}/{{ cluster_name }}.{{ base_domain }} agent wait-for bootstrap-complete --log-level=info"
+
+- name: Wait for install - tail {{ install_dir }}/{{ cluster_name }}.{{ base_domain }}/.openshift_install.log to monitor progress
+  ansible.builtin.command: "{{ install_dir }}/openshift-install --dir {{ install_dir }}/{{ cluster_name }}.{{ base_domain }} agent wait-for install-complete --log-level=info"
+  register: install_result
+
+- name: Install complete
+  debug:
+    msg: "{{ install_result.stdout }}"

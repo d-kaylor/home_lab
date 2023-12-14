@@ -1,0 +1,35 @@
+---
+# tasks file for libvirt
+
+- name: Create disk 1
+  ansible.builtin.command: "qemu-img create -f qcow2 {{ libvirt_pool_path }}/{{ cluster_name }}.qcow2 {{ vm_disk_gb }}G"
+  args:
+    creates: "{{ libvirt_pool_path }}/{{ cluster_name }}.qcow2"
+
+- name: Define a VM
+  community.libvirt.virt:
+    command: define
+    xml: "{{ lookup('template', 'domain.xml.j2') }}"
+
+- name: Get domain xml
+  community.libvirt.virt:
+    command: get_xml
+    name: "{{ cluster_name }}.{{ base_domain }}"
+  register: domain_xml
+
+- name: Get mac address
+  community.general.xml:
+    xmlstring: "{{ domain_xml.get_xml }}"
+    xpath: /domain/devices/interface/mac[@address][1]
+    content: attribute
+  register: mac_xml
+
+- name: Set mac address fact
+  ansible.builtin.set_fact:
+    mac_address: "{{ mac_xml.matches[0].mac.address }}"
+
+- name: Add host to the dhcp pool
+  community.libvirt.virt_net:
+    name: default
+    command: modify
+    xml: "<host mac='{{ mac_address }}' name='{{ cluster_name }}.{{ base_domain }}' ip='{{ machine_ip }}'/>"

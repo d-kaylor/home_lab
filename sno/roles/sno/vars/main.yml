@@ -1,0 +1,13 @@
+---
+# vars file for sno
+install_dir: '{{ ansible_env.HOME }}/labs'
+ocp_installer_url: "https://mirror.openshift.com/pub/openshift-v4/clients/ocp"
+ocp_version: stable-4.14
+cluster_name: cluster_name
+base_domain: example.com
+agent_image_dest: "{{ libvirt_pool_path }}/agent-{{ cluster_name }}.x86_64.iso"
+host_start_command: "virsh start {{ cluster_name }}.{{ base_domain }}"
+machine_ip: 192.0.2.10
+machine_cidr: 192.0.2.0/24
+pull_secret: 'copy from https://console.redhat.com/openshift/install/pull-secret'
+ssh_key: 'copy from ssh public key'

@@ -1,0 +1,7 @@
+---
+# vars file for adguard
+
+adguard_host: https://adguardhome.url
+adguard_auth: basic_auth_string
+cluster_name: cluster_name
+base_domain: example.com

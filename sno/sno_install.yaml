@@ -1,0 +1,12 @@
+---
+- name: Install Single Node OpenShift Cluster on libvirt
+  hosts: localhost
+  connection: local
+
+  vars_files:
+    - sno_vars.yaml
+
+  roles:
+    - adguard
+    - { role: libvirt, become: true }
+    - sno

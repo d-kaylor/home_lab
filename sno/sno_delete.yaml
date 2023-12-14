@@ -1,0 +1,75 @@
+---
+- hosts: localhost
+  connection: local
+
+  vars_files:
+    - sno_vars.yaml
+
+  tasks:
+    - name: Get DNS entries
+      ansible.builtin.uri:
+        url: "http://{{ adguard_host }}/control/rewrite/list"
+        method: GET
+        headers:
+          Authorization: "Basic {{ adguard_auth }}"
+        force_basic_auth: true
+      register: result
+
+    - name: Delete DNS entries
+      ansible.builtin.uri:
+        url: "http://{{ adguard_host }}/control/rewrite/delete"
+        method: POST
+        headers:
+          Authorization: "Basic {{ adguard_auth }}"
+        force_basic_auth: true
+        body_format: json
+        body:
+          domain: "{{ item }}"
+          answer: "{{ machine_ip }}"
+      with_items:
+        - "{{ cluster_name }}.{{ base_domain }}"
+        - "api.{{ cluster_name }}.{{ base_domain }}"
+        - "api-int.{{ cluster_name }}.{{ base_domain }}"
+        - "*.apps.{{ cluster_name }}.{{ base_domain }}"
+      vars:
+        query: "[?domain=='{{ item }}']|[?answer=='{{ machine_ip }}']"
+      when: result.json | community.general.json_query(query)
+
+    - block:
+        - name: Get domain xml
+          community.libvirt.virt:
+            command: get_xml
+            name: "{{ cluster_name }}.{{ base_domain }}"
+          register: domain_xml
+
+        - name: Get mac address
+          community.general.xml:
+            xmlstring: "{{ domain_xml.get_xml }}"
+            xpath: /domain/devices/interface/mac[@address][1]
+            content: attribute
+          register: mac_xml
+
+        - name: Set mac address fact
+          ansible.builtin.set_fact:
+            mac_address: "{{ mac_xml.matches[0].mac.address }}"
+
+        - name: Stop VM
+          ansible.builtin.command: virsh destroy "{{ cluster_name }}.{{ base_domain }}"
+
+        - name: Undefine VM and remove storage
+          ansible.builtin.command: virsh undefine "{{ cluster_name }}.{{ base_domain }}" --nvram --remove-all-storage
+
+        - name: Delete agent iso
+          ansible.builtin.file:
+            path: "{{ agent_image_dest }}.x86_64.iso"
+            state: absent
+
+        - name: Delete host from the dhcp pool
+          ansible.builtin.command: virsh net-update default delete ip-dhcp-host "<host mac='{{ mac_address }}' name='{{ cluster_name }}.{{ base_domain }}' ip='{{ machine_ip }}'/>" --live --config
+      become: true
+      ignore_errors: true
+    
+    - name: Delete install subdirectory
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/labs/{{ cluster_name }}.{{ base_domain }}"
+        state: absent
