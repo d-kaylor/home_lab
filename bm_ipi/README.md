@@ -117,7 +117,7 @@ curl http://192.168.0.1:8000/redfish/v1/Systems
 
 curl http://192.168.0.1:8000/redfish/v1/Systems/151a2000-a8d3-4896-85a8-1ec162ef48dd
 
-curl -d '{"Image":"http://z620:8080/ipxe.iso", "Inserted": true}'
+curl -d '{"Image":"http://192.168.0.1:8080/ipxe.iso", "Inserted": true}'
      -H "Content-Type: application/json" \
      -X POST \
      http://192.168.0.1:8000/redfish/v1/Managers/0ddbb7d6-290b-4a7e-a9c4-1f9f51e8dc80/VirtualMedia/Cd/Actions/VirtualMedia.InsertMedia
