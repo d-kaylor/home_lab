@@ -1,7 +1,7 @@
 ---
 # tasks file for libvirt
 
-- name: Create disk 1
+- name: Create disk
   ansible.builtin.command: "qemu-img create -f qcow2 {{ libvirt_pool_path }}/{{ cluster_name }}.qcow2 {{ vm_disk_gb }}G"
   args:
     creates: "{{ libvirt_pool_path }}/{{ cluster_name }}.qcow2"
