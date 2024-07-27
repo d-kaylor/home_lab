@@ -2,7 +2,7 @@
 # vars file for sno
 install_dir: '{{ ansible_env.HOME }}/labs'
 ocp_installer_url: "https://mirror.openshift.com/pub/openshift-v4/clients/ocp"
-ocp_version: stable-4.14
+ocp_version: stable-4.16
 cluster_name: cluster_name
 base_domain: example.com
 agent_image_dest: "{{ libvirt_pool_path }}/agent-{{ cluster_name }}.x86_64.iso"

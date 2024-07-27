@@ -1,0 +1,8 @@
+---
+# tasks file for haproxy
+
+- name: Configure HAProxy for cluster
+  template:
+    src: haproxy-sno.cfg.j2
+    dest: "/etc/haproxy/conf.d/{{ cluster_name }}.cfg"
+  notify: Restart haproxy service

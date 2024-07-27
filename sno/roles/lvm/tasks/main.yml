@@ -1,0 +1,96 @@
+---
+# tasks file for lvm
+
+- name: Create disk
+  ansible.builtin.command: "qemu-img create -f qcow2 {{ libvirt_pool_path }}/{{ cluster_name }}-lvm.qcow2 {{ lvm_size_gb }}G"
+  args:
+    creates: "{{ libvirt_pool_path }}/{{ cluster_name }}-lvm.qcow2"
+
+- name: Check attached disks
+  ansible.builtin.shell: "virsh domblklist {{ cluster_name }}.{{ base_domain }} | grep {{ lvm_target }} | grep {{ libvirt_pool_path }}/{{ cluster_name }}-lvm.qcow2"
+  register: attached_disks
+  ignore_errors: true
+
+- name: Attach disk
+  ansible.builtin.command: "virsh attach-disk {{ cluster_name }}.{{ base_domain }} {{ libvirt_pool_path }}/{{ cluster_name }}-lvm.qcow2 {{ lvm_target }} --subdriver qcow2 --live --persistent"
+  when: attached_disks is failed
+
+- name: "Install LVM Operator - Namespace"
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        labels:
+          openshift.io/cluster-monitoring: "true"
+          pod-security.kubernetes.io/enforce: privileged
+          pod-security.kubernetes.io/audit: privileged
+          pod-security.kubernetes.io/warn: privileged
+        name: openshift-storage
+
+- name: "Install LVM Operator - OperatorGroup"
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig }}"
+    state: present
+    definition:
+      apiVersion: operators.coreos.com/v1
+      kind: OperatorGroup
+      metadata:
+        name: openshift-storage-operatorgroup
+        namespace: openshift-storage
+      spec:
+        targetNamespaces:
+        - openshift-storage
+
+- name: "Install LVM Operator - Subscription"
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig }}"
+    state: present
+    definition:
+      apiVersion: operators.coreos.com/v1alpha1
+      kind: Subscription
+      metadata:
+        name: lvms
+        namespace: openshift-storage
+      spec:
+        installPlanApproval: Automatic
+        name: lvms-operator
+        source: redhat-operators
+        sourceNamespace: openshift-marketplace
+
+- name: "Install LVM Operator - Wait for installation to complete"
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubeconfig }}"
+    namespace: openshift-storage
+    api_version: operators.coreos.com/v1alpha1
+    kind: ClusterServiceVersiona
+    wait: true
+    wait_condition:
+      type: Succeeded
+      status: true
+      reason: InstallSucceeded
+
+- name: "Create LVMCluster"
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig }}"
+    state: present
+    definition:
+      apiVersion: lvm.topolvm.io/v1alpha1
+      kind: LVMCluster
+      metadata:
+        name: lvmcluster
+        namespace: openshift-storage
+      spec:
+        storage:
+          deviceClasses:
+          - name: vg1
+            default: true
+            deviceSelector:
+              paths:
+                - /dev/{{ lvm_target }}
+            thinPoolConfig:
+              name: thin-pool-1
+              sizePercent: 90 
+              overprovisionRatio: 10

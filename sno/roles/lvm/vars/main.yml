@@ -1,0 +1,4 @@
+---
+# vars file for lvm
+
+install_dir: "{{ ansible_env.HOME }}/labs"
